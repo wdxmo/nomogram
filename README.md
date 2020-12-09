@@ -1,10 +1,10 @@
 Nomogram
 ========
 This is about how to establish a nomogram model to predict patients' prognosis<br>
-###Our outcome: overall survival (OS)<br>
-###Methods: Cox proportional hazards (PH) regression model
+### Our outcome: overall survival (OS)<br>
+### Methods: Cox proportional hazards (PH) regression model
 
-####Preparation before start  
+#### Preparation before start  
 locate your work file  
 `setwd("C:\\Users\\29416\\OneDrive\\document\\Rstudio\\gc")`  
 load corresponding packages needed  
@@ -29,16 +29,16 @@ package the data<br>
 `ddist <- datadist(seer)`<br>
 `options(datadist='ddist')`<br>
 
-###Let's start!
+### Let's start!
 <br>
 
-##To build Cox model
+## To build Cox model
 `fmla1 <- as.formula(Surv(Survival_month,Status) ~ Age + Race + Location + tumor_size + Grade + stage_T + stage_N + stage_M + Chemotherapy)`<br>
 `cox2 <- coxph(fmla1,data=seer)`<br>
 `summary(cox2)`<br>
 The C-index of our model are in the summary<br>
 
-###AJCC 8th TNM C-index in training set
+### AJCC 8th TNM C-index in training set
     fmla2 <- as.formula(Surv(Survival_month,Status) ~ stage_T + stage_N + stage_M)
     cox3 <- coxph(fmla2,data=seer)
     summary(cox3)
@@ -52,8 +52,8 @@ compare the two C-indexes<br>
     library(compareC)
     compareC(seer$Survival_month,seer$Status,coxpe,coxpe1)
 
-###C-index in validation set  
-#####*change categorical variables as factors in the training set*
+### C-index in validation set  
+##### *change categorical variables as factors in the training set*
     validation <- read.csv("simple_validate.csv")
     validation$Age<-factor(validation$Age,labels=c("<70",">=70"))
     validation$Sex<-factor(validation$Sex,labels=c("Male","Female"))
@@ -80,7 +80,7 @@ package the data<br>
 `cindex.orig`<br>
 The C-index in validatin set is presented.
 
-###AJCC 8th TNM C-index in validation set
+### AJCC 8th TNM C-index in validation set
 Just the same method to make it.
 
     fit1 <- cph(Surv(Survival_month,Status)~ stage_T + stage_N + stage_M, data=seer)
@@ -104,26 +104,26 @@ compare the two C-indexes in validation set to acquire the statistical significa
 `c_index1`<br>
 <br>
 
-##To make the Nomogram
+## To make the Nomogram
 
 `cox <- cph(Surv(Survival_month,Status) ~Age + Race + Location + tumor_size + Grade + stage_T + stage_N + stage_M + Chemotherapy,surv=T,x=T, y=T,data=seer) `<br>
 `surv <- Survival(cox)`<br>
-###3-year survival
+### 3-year survival
 `sur_3_year<-function(x)surv(1*12*3,lp=x)`<br>
-###5-year survival
+### 5-year survival
 `sur_5_year<-function(x)surv(1*12*5,lp=x)`<br>
 `nom_sur <- nomogram(cox,fun=list(sur_3_year,sur_5_year),lp= F,funlabel=c('3-year survival','5-year survival'),maxscale=100,fun.at=c('0.95','0.9','0.8','0.7','0.6','0.5','0.4','0.3','0.2','0.1'))`
-###draw nomogram
+### raw nomogram
 `pdf("nom.pdf")`<br>
 `par(mar=c(2,4,1,1)+.1)`<br>
 `plot(nom_sur,xfrac=0.4)`<br>
 `dev.off()`<br>
 <br>
 
-##ROC curve (training set)
+## ROC curve (training set)
 read the data<br>
 `seer<-read.csv("simple_training.csv")`<br>
-###add the risk score<br>
+### add the risk score<br>
 `cox_m <- coxph(Surv(Survival_month,Status) ~Age + Race + Location + tumor_size + Grade + stage_T + stage_N + stage_M + Chemotherapy, data = seer)`<br>
 `cox_m1<-step(cox_m,direction = "both")`<br>
 `risk_score<-predict(cox_m1,type="risk",newdata=seer)`<br>
@@ -132,12 +132,12 @@ generate a new text file
 `write.table(cbind(id=rownames(cbind(seer[,1:2],risk_score,risk_level)),cbind(seer[,1:2],risk_score,risk_level)),"risk_score.txt",sep="\t",quote=F,row.names=F)`<br>
 <br>
 
-###Plot the ROC curve<br>
+### Plot the ROC curve<br>
 `library(survivalROC)`<br>
 read the text generated in last step<br>
 `seer<-read.table("risk_score.txt",header=T,sep="\t")`<br>
 
-####*3 year ROC*
+#### *3 year ROC*
     predict_time<-12*3
     myroc<-survivalROC(Stime=seer$Survival_month, status=seer$Status, marker=seer$risk_score, predict.time=predict_time,method="KM")
     a<-round(myroc$AUC,3)
@@ -152,7 +152,7 @@ Plot the ROC<br>
     abline(0,1)
     dev.off()
 
-####*5 year ROC*
+#### *5 year ROC*
     predict_time<-12*5 
     myroc<-survivalROC(Stime=seer$Survival_month, status=seer$Status, marker=seer$risk_score, predict.time=predict_time,method="KM")
     a<-round(myroc$AUC,3)
@@ -169,11 +169,11 @@ Plot the ROC<br>
 <br>
 
 
-##ROC curve (validation set)
+## ROC curve (validation set)
 read the two sets of data<br>
 `seer<-read.csv("simple_training.csv")`<br>
 `seer1<-read.csv("simple_validate.csv")`<br>
-###add the risk score<br>
+### add the risk score<br>
 `cox_m <- coxph(Surv(Survival_month,Status) ~ Age + Race + Location + tumor_size + Grade + stage_T + stage_N + stage_M + Chemotherapy, data = seer)`<br>
 `cox_m1<-step(cox_m,direction = "both")`<br>
 `risk_score<-predict(cox_m1,type="risk",newdata=seer1)`<br>
@@ -182,11 +182,11 @@ generate a new text file<br>
 `write.table(cbind(id=rownames(cbind(seer1[,1:2],risk_score,risk_level)),cbind(seer1[,1:2],risk_score,risk_level)),"risk_score_val.txt",sep="\t",quote=F,row.names=F)`<br>
 
 
-###Plot the ROC curve
+### Plot the ROC curve
 read the text generated in last step<br>
 `seer<-read.table("risk_score_val.txt",header=T,sep="\t")`<br>
 
-####*3 year ROC*
+#### *3 year ROC*
     predict_time<-12*3
     myroc<-survivalROC(Stime=seer$Survival_month, status=seer$Status, marker=seer$risk_score, predict.time=predict_time,method="KM")
     a<-round(myroc$AUC,3)
@@ -201,7 +201,7 @@ Plot the ROC<br>
     abline(0,1)
     dev.off()
 
-####*5 year ROC*
+#### *5 year ROC*
     predict_time<-12*5
     myroc<-survivalROC(Stime=seer$Survival_month, status=seer$Status, marker=seer$risk_score, predict.time=predict_time,method="KM")
     a<-round(myroc$AUC,3)
@@ -217,7 +217,7 @@ Plot the ROC<br>
     dev.off()
 <br>
 
-##Decision curve analysis (DCA)
+## Decision curve analysis (DCA)
 
 `attach(seer)`<br>
 `str(seer)`<br>
@@ -231,7 +231,7 @@ download from [HERE](https://www.mskcc.org/sites/default/files/node/4509/documen
 
 `Srv = Surv(seer$Survival_month, seer$Status)`<br>
 
-###*3 year in training set*
+### *3 year in training set*
 TNM model & Our nomogram
 
     coxmod1 <- coxph(Srv ~ stage_T + stage_N + stage_M, data=seer)
@@ -245,7 +245,7 @@ Plot the DCA curve<br>
     stdca(data=seer, outcome="Status", ttoutcome="Survival_month", timepoint=3,predictors=c("TNM_stage","Nomogram"), xstop=0.6, smooth=TRUE)
     dev.off()
 
-###*5 year in training set*
+### *5 year in training set*
     coxmod1 <- coxph(Srv ~ stage_T + stage_N + stage_M, data=seer)
     coxmod2 <- coxph(Srv ~ Age + Race + Location + tumor_size + Grade + stage_T + stage_N + stage_M + Chemotherapy, data=seer)
 
@@ -260,7 +260,7 @@ Plot the DCA curve<br>
 
 `str(validation)`<br>
 
-###*3 year in validation set*
+### *3 year in validation set*
 TNM model & Our nomogram
 
     coxmod1 <- coxph(Srv ~ stage_T + stage_N + stage_M, data=seer)
@@ -274,7 +274,7 @@ Plot the DCA curve
     stdca(data=validation, outcome="Status", ttoutcome="Survival_month", timepoint=3,predictors=c("TNM_stage","Nomogram"), xstop=0.6, smooth=TRUE)
     dev.off()
 
-###*5 year in validation set*
+### *5 year in validation set*
     coxmod1 <- coxph(Srv ~ stage_T + stage_N + stage_M, data=seer)
     coxmod2 <- coxph(Srv ~ Age + Race + Location + tumor_size + Grade + stage_T + stage_N + stage_M + Chemotherapy, data=seer)
 
@@ -287,13 +287,13 @@ Plot the DCA curve
     dev.off()
 <br>
 
-##Calibration curve
+## Calibration curve
 
 `library(rms)`<br>
 `library(foreign)`<br>
 `library(survival)`<br>
 
-###*3-year in training set*
+### *3-year in training set*
     cox_3 <- cph(Surv(Survival_month,Status) ~ Age + Race + Location + tumor_size + Grade + stage_T + stage_N + stage_M + Chemotherapy,surv=T,x=T, y=T,time.inc = 1*12*3,data=seer) 
     cal <- calibrate(cox_3, cmethod="KM", method="boot", u=1*12*3, m=1500, B=1000)
 Plot the curve<br>
@@ -307,7 +307,7 @@ Plot the curve<br>
     axis(1,at=c(0.0,0.2,0.4,0.6,0.8,1.0),cex.axis=1.5)
     dev.off()
 
-###*5-year in training set*
+### *5-year in training set*
     cox_5 <- cph(Surv(Survival_month,Status) ~ Age + Race + Location + tumor_size + Grade + stage_T + stage_N + stage_M + Chemotherapy,surv=T,x=T, y=T,time.inc = 1*12*5,data=seer) 
     cal <- calibrate(cox_5, cmethod="KM", method="boot", u=1*12*5, m=1500, B=1000)
 Plot the curve<br>
@@ -322,7 +322,7 @@ Plot the curve<br>
     dev.off()
 
 
-###*3-year in external validation set*
+### *3-year in external validation set*
 
     fev3 <- cph(Surv(Survival_month,Status) ~ fp, x=T, y=T, surv=T, data=validation, time.inc=36)
     calev3 <- calibrate(fev3, cmethod="KM", method="boot", u=36, m=600, B=1000)
@@ -339,13 +339,13 @@ Plot the curve<br>
 <br>
 
 
-##KM survival curve
+## KM survival curve
 
 `library(survival)`<br>
 read the data<br>
 `inputdata1<- read.csv("simple_training.csv")`<br>
 
-###by Age
+### by Age
     kms<-survfit(Surv(Survival_month,Status)~Age,data=inputdata1)
     kmdffexp=survdiff(Surv(Survival_month,Status)~Age,data=inputdata1)
     pValue=round(1-pchisq(kmdffexp$chisq,df=1),3)
@@ -364,7 +364,7 @@ Plot the curve<br>
     legend("topright",c("<70",">=70"),lty=2,col=c("dodgerblue3","goldenrod1"))
     dev.off()
 
-###by Sex
+### by Sex
     kms<-survfit(Surv(Survival_month,Status)~Sex,data=inputdata1)
     kmdffexp=survdiff(Surv(Survival_month,Status)~Sex,data=inputdata1)
     pValue=round(1-pchisq(kmdffexp$chisq,df=1),3)
@@ -383,7 +383,7 @@ Plot the curve<br>
     legend("topright",c("Male","Female"),lty=2,col=c("dodgerblue3","goldenrod1"))
     dev.off()
 
-###by Race
+### by Race
     kms<-survfit(Surv(Survival_month,Status)~Race,data=inputdata1)
     kmdffexp=survdiff(Surv(Survival_month,Status)~Race,data=inputdata1)
     pValue=round(1-pchisq(kmdffexp$chisq,df=1),3)
@@ -402,7 +402,7 @@ Plot the curve<br>
     legend("topright",c("Other","White","Black"),lty=2,col=c("dodgerblue3","goldenrod1","firebrick"))
     dev.off()
 
-###by Location
+### by Location
     kms<-survfit(Surv(Survival_month,Status)~Location,data=inputdata1)
     kmdffexp=survdiff(Surv(Survival_month,Status)~Location,data=inputdata1)
     pValue=round(1-pchisq(kmdffexp$chisq,df=1),3)
@@ -421,7 +421,7 @@ Plot the curve<br>
     legend("topright",c("Non-cardia","Cardia"),lty=2,col=c("dodgerblue3","goldenrod1"))
     dev.off()
 
-###by tumor size
+### by tumor size
     kms<-survfit(Surv(Survival_month,Status)~tumor_size,data=inputdata1)
     kmdffexp=survdiff(Surv(Survival_month,Status)~tumor_size,data=inputdata1)
     pValue=round(1-pchisq(kmdffexp$chisq,df=1),3)
@@ -440,7 +440,7 @@ Plot the curve<br>
     legend("topright",c("<2cm","2-10cm",">10cm/diffuse"),lty=2,col=c("dodgerblue3","gold","firebrick"))
     dev.off()
 
-###by Grade
+### by Grade
     kms<-survfit(Surv(Survival_month,Status)~Grade,data=inputdata1)
     kmdffexp=survdiff(Surv(Survival_month,Status)~Grade,data=inputdata1)
     pValue=round(1-pchisq(kmdffexp$chisq,df=1),3)
@@ -459,7 +459,7 @@ Plot the curve<br>
     legend("topright",c("Well","Moderately","Poorly"),lty=2,col=c("dodgerblue3","gold","firebrick"))
     dev.off()
 
-###by AJCC 8th Stage
+### by AJCC 8th Stage
     kms<-survfit(Surv(Survival_month,Status)~AJCC_8th,data=inputdata1)
     kmdffexp=survdiff(Surv(Survival_month,Status)~AJCC_8th,data=inputdata1)
     pValue=round(1-pchisq(kmdffexp$chisq,df=1),3)
@@ -478,7 +478,7 @@ Plot the curve<br>
     legend("topright",c("Stage I","Stage II","Stage III","Stage IV"),lty=2,col=c("dodgerblue3","gold","firebrick","black"))
     dev.off()
 
-###by Stage T
+### by Stage T
     kms<-survfit(Surv(Survival_month,Status)~stage_T,data=inputdata1)
     kmdffexp=survdiff(Surv(Survival_month,Status)~stage_T,data=inputdata1)
     pValue=round(1-pchisq(kmdffexp$chisq,df=1),3)
@@ -497,7 +497,7 @@ Plot the curve<br>
     legend("topright",c("T1","T2","T3","T4"),lty=2,col=c("dodgerblue3","gold","firebrick","black"))
     dev.off()
 
-###by Stage N
+### by Stage N
     kms<-survfit(Surv(Survival_month,Status)~stage_N,data=inputdata1)
     kmdffexp=survdiff(Surv(Survival_month,Status)~stage_N,data=inputdata1)
     pValue=round(1-pchisq(kmdffexp$chisq,df=1),3)
@@ -516,7 +516,7 @@ Plot the curve<br>
     legend("topright",c("N0","N1","N2","N3"),lty=2,col=c("dodgerblue3","gold","firebrick","black"))
     dev.off()
 
-###by Stage M
+### by Stage M
     kms<-survfit(Surv(Survival_month,Status)~stage_M,data=inputdata1)
     kmdffexp=survdiff(Surv(Survival_month,Status)~stage_M,data=inputdata1)
     pValue=round(1-pchisq(kmdffexp$chisq,df=1),3)
@@ -535,7 +535,7 @@ Plot the curve<br>
     legend("topright",c("M0","M1"),lty=2,col=c("dodgerblue3","goldenrod1"))
     dev.off()
 
-###by chemotherapy (adjusted before and after)
+### by chemotherapy (adjusted before and after)
 
 `cox2<-coxph(Surv(Survival_month,Status) ~ Age + Race + Location + tumor_size + Grade + stage_T + stage_N + stage_M + strata(Chemotherapy), data=seer)`<br>
 `cox.zph(cox2,transform=rank)`<br>
@@ -544,14 +544,14 @@ Plot the curve<br>
 `library("survival")`<br>
 `library("survminer")`<br>
 
-####plot curve after adjusted
+#### plot curve after adjusted
 
     pdf("survival-chemotherapy_corr.pdf")
     ggadjustedcurves(cox2,pval=TRUE,data=seer,method = "marginal", variable = "Chemotherapy",legend.title="",
                      xlab="Survival time (months)",ylab="Overall Survival",
                      main=paste("Chemotherapy Adjusted"))
     dev.off()
-####plot curve before adjusted
+#### plot curve before adjusted
 
     pdf("survival-chemotherapy.pdf")
     ggadjustedcurves(cox2,pval=TRUE,data=seer,method = "average", variable = "Chemotherapy",legend.title="",
@@ -560,7 +560,7 @@ Plot the curve<br>
     dev.off()
 
 
-##make table1
+## make table1
 
 `install.packages("table1")`<br>
 `library(table1)`<br>
@@ -584,21 +584,21 @@ Change categorical variables into factors<br>
     seer$Radiation<-factor(seer$Radiation,labels=c("No radiation or surgery","Yes"))
     seer$Chemotherapy<-factor(seer$Chemotherapy,labels=c("No/Unknown","Yes"))
 
-###make table 1 by group (Set)
+### make table 1 by group (Set)
 `units(seer$Age) <- "years"`<br>
 `table1(~ Age + Age_group + Sex + Race + Location + Grade + AJCC_8th + stage_T + stage_N + stage_M + tumor_size + nodes_examined + nodes_positive + Radiation + Chemotherapy | Set, data=seer, overall = "Total")`<br>
 
-###add more statistics to table 1
+### add more statistics to table 1
     units(seer$nodes_examined) <- "No."
     units(seer$nodes_positive) <- "No."
     table1(~ Age + Age_group + Sex + Race + Location + Grade + AJCC_8th + stage_T + stage_N + stage_M + tumor_size + nodes_examined + nodes_positive + Radiation + Chemotherapy | Set, data=seer,
            render.continuous=c(.="Mean (SD)",.="Median [Q1, Q3]"))
 
-###add P value
+### add P value
 `library(MatchIt)`<br>
 `seer$Set <- factor(seer$Set,levels=c(0, 1, 2),labels=c("traning set", "validation set","P-value"))`<br>
 
-###creat P values
+### creat P values
     data <- seer
     outcome <- seer$Set
     
@@ -622,7 +622,7 @@ Change categorical variables into factors<br>
       ifelse(n==0, label, render.strat.default(label, n, ...))
     }
 
-###make table 1 new
+### make table 1 new
 
     table1(~ Age + Age_group + Sex + Race + Location + Grade + AJCC_8th + stage_T + stage_N + stage_M + tumor_size + nodes_examined + nodes_positive + Radiation + Chemotherapy | Set, data=seer, 
        render.continuous=c(.="Mean (SD)",.="Median [Q1, Q3]"),droplevels=F, render=rndr, render.strat=rndr.strat, overall="Total")
